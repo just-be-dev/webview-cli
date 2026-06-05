@@ -1,6 +1,6 @@
 [package]
 name = "webview-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A one-shot webview CLI: render HTML, get one JSON result back, exit."
 authors = ["Justin Bennett <oss@just-be.dev>"]
