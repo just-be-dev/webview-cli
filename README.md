@@ -22,7 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/just-be-dev/webview-cli/main/instal
 
 **Prebuilt binaries** — download from the
 [Releases page](https://github.com/just-be-dev/webview-cli/releases). Each
-release ships `webview-<platform>` for `macos-arm64`, `macos-x64`, `linux-x64`,
+release ships `webview-<platform>` for `macos-arm64`, `linux-x64`,
 `linux-arm64`, and `windows-x64`, alongside `SHA256SUMS`.
 
 **Cargo** — if you have a Rust toolchain:
@@ -166,7 +166,7 @@ Source layout:
 ## Releasing
 
 Pushing a `v*` tag (e.g. `v0.1.0`) triggers the release workflow, which builds
-all five platform binaries, attaches them plus `SHA256SUMS` to a GitHub
+all four platform binaries, attaches them plus `SHA256SUMS` to a GitHub
 Release, and publishes the crate to crates.io. See
 [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
