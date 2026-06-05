@@ -1,9 +1,20 @@
 name: Release
 
-# Push a tag like `v0.1.0` to cut a release: build every platform binary,
-# attach them + SHA256SUMS to a GitHub Release, and publish to crates.io.
+# A release is cut whenever the `version` in Cargo.toml on `main` doesn't yet
+# have a matching `v<version>` git tag. The `gate` job below detects that,
+# creates the tag, and lets the build/release/crates jobs run in the SAME run.
+#
+# Why not a separate "auto-tag" workflow? Tags pushed with the default
+# GITHUB_TOKEN do NOT trigger other workflows (GitHub blocks this to avoid
+# recursion), so a tag-triggered release.yml would never fire. Keeping the
+# detection + release in one workflow sidesteps that without needing a PAT.
+#
+# Pushing a `v*` tag by hand or running this manually still works:
+#   - tag push     -> release that exact tag
+#   - workflow_dispatch / main push -> release Cargo.toml's version if untagged
 on:
   push:
+    branches: [main]
     tags:
       - "v*"
   workflow_dispatch:
@@ -11,8 +22,66 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # Decide whether there's anything to release, and what tag to release.
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the version tag
+    outputs:
+      should_release: ${{ steps.decide.outputs.should_release }}
+      tag: ${{ steps.decide.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full tag list to know what's already released
+
+      - name: Decide whether to release
+        id: decide
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            # Triggered by an explicit tag push: release exactly that tag.
+            tag="${{ github.ref_name }}"
+            echo "Tag push detected: releasing ${tag}."
+            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Branch push or manual dispatch: derive the tag from Cargo.toml.
+          version="$(grep -m1 '^version = ' Cargo.toml | sed -E 's/^version = "([^"]+)".*/\1/')"
+          tag="v${version}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists; nothing to release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New version ${version} with no ${tag} tag; tagging + releasing."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create version tag
+        # Only when we derived a brand-new tag from Cargo.toml (not on tag push,
+        # where the tag already exists).
+        if: steps.decide.outputs.should_release == 'true' && github.ref_type != 'tag'
+        env:
+          TAG: ${{ steps.decide.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git tag "$TAG"
+          git push origin "$TAG"
+
   build:
+    needs: gate
+    if: needs.gate.outputs.should_release == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -56,7 +125,8 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: build
+    needs: [gate, build]
+    if: needs.gate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the GitHub Release and upload assets
@@ -75,7 +145,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.gate.outputs.tag }}
         run: |
           gh release create "$TAG" \
             --title "$TAG" \
@@ -84,10 +154,9 @@ jobs:
             artifacts/SHA256SUMS
 
   crates:
-    needs: build
+    needs: [gate, build]
+    if: needs.gate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
-    # Only publish on a real tag push, not workflow_dispatch dry runs.
-    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 

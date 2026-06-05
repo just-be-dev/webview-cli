@@ -14,6 +14,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # PR-only guard: if a PR bumps the Cargo.toml version, it must also add a
+  # matching CHANGELOG.md section. This never runs on `main` pushes (see the
+  # event_name gate), so it can't block the release flow — only PRs.
+  changelog:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require a changelog entry when the version is bumped
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read_version() { grep -m1 '^version = ' | sed -E 's/^version = "([^"]+)".*/\1/'; }
+
+          # Compare this PR's Cargo.toml version against the base branch's.
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          head_version="$(read_version < Cargo.toml)"
+          base_version="$(git show FETCH_HEAD:Cargo.toml | read_version)"
+
+          if [ "$head_version" = "$base_version" ]; then
+            echo "Version unchanged ($head_version); no changelog entry required."
+            exit 0
+          fi
+
+          echo "Version bump detected: $base_version -> $head_version"
+
+          # Match a heading like '## [0.2.0]' or '## 0.2.0' (dots escaped).
+          ver_re="${head_version//./\\.}"
+          if grep -qE "^## \\[?${ver_re}(\\]|[[:space:]]|\$)" CHANGELOG.md; then
+            echo "Found CHANGELOG.md entry for $head_version."
+          else
+            echo "::error file=CHANGELOG.md::Cargo.toml was bumped to $head_version but CHANGELOG.md has no '## [$head_version]' section. Add a changelog entry."
+            exit 1
+          fi
+
   test:
     strategy:
       fail-fast: false
