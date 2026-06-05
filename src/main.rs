@@ -1,4 +1,4 @@
-//! webview — a one-shot webview CLI for agents and humans.
+//! webview — a webview CLI for agents and humans.
 //!
 //! Render the HTML the caller provides, give the page one channel to send a
 //! result back (`window.webview.resolve` / `.reject`), print that result, and

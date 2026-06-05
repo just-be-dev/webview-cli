@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release: a one-shot webview CLI that renders HTML (from a file or
+- Initial release: a webview CLI that renders HTML (from a file or
   piped on stdin), gives the page a `window.webview.resolve` / `.reject`
   bridge, prints the single result, and exits with a documented exit code.
 - Window-shaping flags: `--title`, `--width`, `--height`, `--devtools`,

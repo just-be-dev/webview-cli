@@ -2,7 +2,7 @@
 name = "webview-cli"
 version = "0.2.0"
 edition = "2021"
-description = "A one-shot webview CLI: render HTML, get one JSON result back, exit."
+description = "A webview CLI: render HTML, get one JSON result back, exit."
 authors = ["Justin Bennett <oss@just-be.dev>"]
 license = "MIT"
 repository = "https://github.com/just-be-dev/webview-cli"
