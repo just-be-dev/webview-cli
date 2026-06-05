@@ -28,6 +28,14 @@ fn has_display() -> bool {
 }
 
 fn skip_unless_display(test: &str) -> bool {
+    // Explicit escape hatch for environments where a webview *can't* be created
+    // even though a "display" nominally exists — notably headless Windows CI,
+    // where WebView2 fails to initialize and leaks diagnostics onto stderr. An
+    // empty value counts as unset so the var can be passed through unconditionally.
+    if matches!(std::env::var("WEBVIEW_SKIP_LAUNCH_TESTS"), Ok(v) if !v.is_empty()) {
+        eprintln!("skipping {test}: WEBVIEW_SKIP_LAUNCH_TESTS is set");
+        return true;
+    }
     if has_display() {
         return false;
     }

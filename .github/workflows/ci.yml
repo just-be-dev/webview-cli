@@ -48,7 +48,12 @@ jobs:
           cargo fmt --check
           cargo clippy --all-targets -- -D warnings
 
-      # macOS/Windows runners have a display, so launch tests run there too.
-      # Linux runs headless: the window-launch tests skip automatically.
+      # macOS runners have a working display + WebView, so the launch tests run
+      # end-to-end there. Linux runs headless (DISPLAY unset → launch tests skip
+      # automatically). Windows CI can't initialize WebView2 reliably and leaks
+      # diagnostics to stderr, so we skip the launch tests there explicitly; the
+      # unit tests still run on every platform.
       - name: Test
+        env:
+          WEBVIEW_SKIP_LAUNCH_TESTS: ${{ runner.os == 'Windows' && '1' || '' }}
         run: cargo test
