@@ -11,8 +11,8 @@ use clap::Parser;
 const LONG_ABOUT: &str = "\
 Render HTML in a native webview, print the single result the page sends back, then exit.
 
-The HTML comes from a FILE argument, or from stdin when piped in. The page reports its
-result over the JavaScript bridge that webview injects as `window.webview`:
+The page comes from a FILE argument, an http(s) URL, or from stdin when piped in. The
+page reports its result over the JavaScript bridge that webview injects as `window.webview`:
 
   window.webview.resolve(value)   print `value` to stdout, exit 0
   window.webview.reject(reason)   print `reason` to stderr, exit 1
@@ -25,6 +25,7 @@ verbatim, so the caller decides how to interpret it.";
 const AFTER_LONG_HELP: &str = "\
 Examples:
   webview page.html                     render a file and wait for a result
+  webview https://example.com           render a remote URL
   cat page.html | webview               render HTML piped on stdin
   webview page.html --timeout-ms 5000   give up after 5 seconds
   webview page.html --title Pick --width 480 --height 320
@@ -34,7 +35,7 @@ Exit codes:
   1    the page called reject(reason)
   2    the window was closed before the page settled
   3    --timeout-ms elapsed before the page settled
-  64   usage error (no HTML on stdin or as a file argument)";
+  64   usage error (no HTML on stdin, URL, or file argument)";
 
 /// Parsed command-line arguments.
 ///
@@ -50,8 +51,8 @@ Exit codes:
     after_long_help = AFTER_LONG_HELP,
 )]
 pub struct Cli {
-    /// HTML file to render. Omit to read HTML from stdin.
-    #[arg(value_name = "FILE")]
+    /// HTML file to render, or an http(s) URL to load. Omit to read HTML from stdin.
+    #[arg(value_name = "FILE|URL")]
     pub path: Option<std::path::PathBuf>,
 
     /// Window title.

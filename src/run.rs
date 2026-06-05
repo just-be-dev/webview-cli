@@ -68,6 +68,7 @@ pub fn run(cli: &Cli, load: Load) -> ! {
 
     builder = match &load {
         Load::Html(html) => builder.with_html(html),
+        Load::Url(url) => builder.with_url(url),
         Load::File(path) => {
             // Serve the page's directory over a custom scheme so it loads at
             // all (WKWebView) and gets a real origin for relative assets.

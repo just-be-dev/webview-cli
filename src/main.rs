@@ -23,7 +23,7 @@ fn main() {
         Ok(load) => load,
         Err(InputError::NoInput) => {
             eprintln!(
-                "webview: no HTML to render. Pass a file path, or pipe HTML on stdin.\n\
+                "webview: no HTML to render. Pass a file path or http(s) URL, or pipe HTML on stdin.\n\
                  Try 'webview --help' for usage."
             );
             std::process::exit(exit::USAGE);

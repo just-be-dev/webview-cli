@@ -47,12 +47,14 @@ On Linux you need the WebKitGTK headers to build (or to run the binary):
 ```bash
 echo '<html>…</html>' | webview            # HTML piped on stdin
 webview ./page.html                         # or a file path
+webview https://example.com                 # or an http(s) URL
 webview ./page.html --title T --width 900 --height 700 --devtools --icon ./icon.png --timeout-ms 60000
 ```
 
-Input precedence: non-empty piped stdin wins; otherwise the path argument;
-otherwise it's a usage error. File pages are served over a custom origin so
-relative CSS/JS/images and `fetch` resolve (and so they load at all under
+Input precedence: non-empty piped stdin wins; otherwise the positional argument
+(an `http://`/`https://` URL is loaded remotely, anything else is treated as a
+file); otherwise it's a usage error. File pages are served over a custom origin
+so relative CSS/JS/images and `fetch` resolve (and so they load at all under
 WKWebView).
 
 ### Flags
@@ -157,7 +159,7 @@ Source layout:
 | ----------- | --------------------------------------------------------- |
 | `main.rs`   | orchestration: parse args, resolve input, run             |
 | `cli.rs`    | clap arg struct + usage                                   |
-| `input.rs`  | stdin-vs-path resolution → a `Load` enum                  |
+| `input.rs`  | stdin / URL / path resolution → a `Load` enum             |
 | `bridge.rs` | the `BRIDGE` JS + `AppEvent` + message parsing            |
 | `assets.rs` | custom-protocol file server (MIME, path-traversal safety) |
 | `icon.rs`   | runtime Dock-icon swap for `--icon` (macOS; no-op else)   |
