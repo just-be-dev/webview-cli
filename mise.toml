@@ -1,0 +1,49 @@
+[tools]
+rust = "1.95.0"
+
+[settings]
+# Pin tool versions and keep a lockfile so contributors and CI build with the
+# same toolchain.
+pin = true
+lockfile = true
+
+[tasks.build]
+run = "cargo build --release"
+description = "Build the webview binary (target/release/webview)"
+
+[tasks.bin]
+run = "./target/release/webview"
+description = "Run the built webview binary"
+
+[tasks.dev]
+alias = "webview"
+run = "cargo run --"
+description = "Run webview from source"
+
+[tasks.typecheck]
+alias = ["type-check"]
+quiet = true
+run = "cargo check --all-targets"
+description = "Typecheck the crate"
+
+[tasks.test]
+run = "cargo test"
+description = "Run tests (window-launch tests skip without a display)"
+
+[tasks.lint]
+run = "cargo clippy --all-targets -- -D warnings"
+description = "Lint with clippy"
+
+[tasks.format]
+alias = "fmt"
+run = "cargo fmt"
+description = "Format the crate"
+
+[tasks."format:check"]
+alias = "fmt:check"
+run = "cargo fmt --check"
+description = "Check formatting without writing"
+
+[tasks.check]
+depends = ["format:check", "lint", "typecheck", "test"]
+description = "Run format check, lint, typecheck, and tests"

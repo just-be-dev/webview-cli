@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-14, name: macos-arm64 }
+          - { os: ubuntu-22.04, name: linux-x64 }
+          - { os: windows-latest, name: windows-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # wry (WebKitGTK backend) + tao (GTK windowing) need WebKitGTK + GTK
+      # headers to compile on Linux. We pin webkit2gtk-4.1 because wry's
+      # webkit2gtk-sys links the libsoup3 variant (4.0 uses libsoup2).
+      - name: Install webview build deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3.6.1
+        with:
+          version: 2026.5.3
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+
+      - name: Check formatting and lint
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+
+      # macOS/Windows runners have a display, so launch tests run there too.
+      # Linux runs headless: the window-launch tests skip automatically.
+      - name: Test
+        run: cargo test

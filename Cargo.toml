@@ -1,0 +1,47 @@
+[package]
+name = "webview-cli"
+version = "0.1.0"
+edition = "2021"
+description = "A one-shot webview CLI: render HTML, get one JSON result back, exit."
+authors = ["Justin Bennett <oss@just-be.dev>"]
+license = "MIT"
+repository = "https://github.com/just-be-dev/webview-cli"
+homepage = "https://github.com/just-be-dev/webview-cli"
+documentation = "https://github.com/just-be-dev/webview-cli#readme"
+readme = "README.md"
+keywords = ["webview", "cli", "gui", "html", "agent"]
+categories = ["command-line-utilities", "gui"]
+rust-version = "1.77"
+# Keep the published crate small: ship only what's needed to build + the docs.
+exclude = ["/.github", "/install.sh", "/target"]
+
+[[bin]]
+name = "webview"
+path = "src/main.rs"
+
+[dependencies]
+# Webview rendering (WKWebView / WebKit2GTK / WebView2). Pinned to the
+# version whose WebViewBuilder + IPC handler API this code targets — the
+# IPC handler signature has moved across releases.
+wry = "0.55"
+# Windowing + event loop; wry's companion. Sets up the macOS NSApplication
+# (app activation/focus) which sidesteps raw-binary focus problems.
+tao = "0.35"
+# Argument parsing. The surface is tiny, but clap gives us usage/help for free.
+clap = { version = "4", features = ["derive"] }
+
+# macOS-only: swap the Dock icon at runtime for `--icon` by handing AppKit an
+# NSImage. These crates are already in the tree (via tao); we enable just the
+# classes we touch.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSImage"] }
+objc2-foundation = { version = "0.3", features = ["NSString"] }
+
+[profile.release]
+# A CLI binary: optimize for size + strip symbols. lto trims the webview deps.
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"
