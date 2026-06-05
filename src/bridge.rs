@@ -8,15 +8,20 @@
 
 /// Injected before page load. Defines the one channel the page talks back on.
 ///
+/// `version` carries the crate version so a remote page can both detect that
+/// it's running inside webview (`window.webview` exists) and tell which build.
 /// `resolve` stringifies its argument (so the binary prints valid JSON, with
 /// `undefined`/no-arg becoming `null`); `reject` coerces to a string. The
 /// `"ok:"` / `"err:"` prefixes are the entire wire format.
-pub const BRIDGE: &str = r#"
-  window.webview = {
-    resolve: (v) => window.ipc.postMessage("ok:"  + JSON.stringify(v ?? null)),
-    reject:  (e) => window.ipc.postMessage("err:" + String(e)),
-  };
-"#;
+pub const BRIDGE: &str = concat!(
+    "\n  window.webview = {\n",
+    "    version: \"",
+    env!("CARGO_PKG_VERSION"),
+    "\",\n",
+    "    resolve: (v) => window.ipc.postMessage(\"ok:\"  + JSON.stringify(v ?? null)),\n",
+    "    reject:  (e) => window.ipc.postMessage(\"err:\" + String(e)),\n",
+    "  };\n"
+);
 
 /// What the event loop reacts to. `Resolve`/`Reject` carry the page's payload
 /// verbatim; `Timeout` and the window-close case carry nothing.

@@ -2,7 +2,7 @@
 //!
 //! Precedence:
 //!   1. stdin is not a TTY (something piped in) -> read to EOF as inline HTML.
-//!   2. a positional path was given            -> load that file.
+//!   2. a positional argument was given         -> an http(s) URL, else a file.
 //!   3. neither                                 -> usage error (exit 64).
 
 use std::io::{self, IsTerminal, Read};
@@ -15,6 +15,15 @@ pub enum Load {
     Html(String),
     /// A file on disk (file:// origin, with read access to its parent dir).
     File(PathBuf),
+    /// A remote http(s) URL, loaded directly.
+    Url(String),
+}
+
+/// Does this positional argument look like an http(s) URL we should load
+/// remotely rather than treat as a file on disk?
+fn looks_like_url(arg: &str) -> bool {
+    let lower = arg.to_ascii_lowercase();
+    lower.starts_with("http://") || lower.starts_with("https://")
 }
 
 /// Why we couldn't resolve any input.
@@ -48,8 +57,14 @@ where
         }
     }
 
-    // 2. Otherwise fall back to a file path.
+    // 2. Otherwise fall back to the positional argument: an http(s) URL is
+    //    loaded remotely, anything else is treated as a file on disk.
     if let Some(p) = path {
+        if let Some(s) = p.to_str() {
+            if looks_like_url(s) {
+                return Ok(Load::Url(s.to_string()));
+            }
+        }
         return Ok(Load::File(p));
     }
 
@@ -119,5 +134,47 @@ mod tests {
     fn stdin_read_failure_is_surfaced() {
         let got = resolve(false, None, || Err(io::Error::other("boom")));
         assert!(matches!(got, Err(InputError::StdinRead(_))));
+    }
+
+    #[test]
+    fn http_argument_is_loaded_as_a_url() {
+        let got = resolve(true, Some(PathBuf::from("http://example.com")), || {
+            panic!("stdin should not be read when it's a tty")
+        });
+        assert_eq!(got, Ok(Load::Url("http://example.com".to_string())));
+    }
+
+    #[test]
+    fn https_argument_is_loaded_as_a_url() {
+        let got = resolve(
+            true,
+            Some(PathBuf::from("https://example.com/p?a=1")),
+            || panic!("stdin should not be read when it's a tty"),
+        );
+        assert_eq!(got, Ok(Load::Url("https://example.com/p?a=1".to_string())));
+    }
+
+    #[test]
+    fn url_scheme_match_is_case_insensitive() {
+        let got = resolve(true, Some(PathBuf::from("HTTPS://Example.com")), || {
+            panic!("stdin should not be read when it's a tty")
+        });
+        assert_eq!(got, Ok(Load::Url("HTTPS://Example.com".to_string())));
+    }
+
+    #[test]
+    fn non_url_argument_is_still_a_file() {
+        let got = resolve(true, Some(PathBuf::from("page.html")), || {
+            panic!("stdin should not be read when it's a tty")
+        });
+        assert_eq!(got, Ok(Load::File(PathBuf::from("page.html"))));
+    }
+
+    #[test]
+    fn piped_stdin_takes_precedence_over_url() {
+        let got = resolve(false, Some(PathBuf::from("https://example.com")), || {
+            Ok("<h1>piped</h1>".to_string())
+        });
+        assert_eq!(got, Ok(Load::Html("<h1>piped</h1>".to_string())));
     }
 }

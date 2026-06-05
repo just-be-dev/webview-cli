@@ -47,12 +47,14 @@ On Linux you need the WebKitGTK headers to build (or to run the binary):
 ```bash
 echo '<html>…</html>' | webview            # HTML piped on stdin
 webview ./page.html                         # or a file path
+webview https://example.com                 # or an http(s) URL
 webview ./page.html --title T --width 900 --height 700 --devtools --icon ./icon.png --timeout-ms 60000
 ```
 
-Input precedence: non-empty piped stdin wins; otherwise the path argument;
-otherwise it's a usage error. File pages are served over a custom origin so
-relative CSS/JS/images and `fetch` resolve (and so they load at all under
+Input precedence: non-empty piped stdin wins; otherwise the positional argument
+(an `http://`/`https://` URL is loaded remotely, anything else is treated as a
+file); otherwise it's a usage error. File pages are served over a custom origin
+so relative CSS/JS/images and `fetch` resolve (and so they load at all under
 WKWebView).
 
 ### Flags
@@ -73,11 +75,24 @@ Everything else lives in the HTML — there are no other flags by design.
 The page talks back through one injected object:
 
 ```js
+window.webview.version; // the webview-cli version string, e.g. "0.2.0"
 window.webview.resolve(value); // any JSON-serializable value
 window.webview.reject(error); // string or Error
 ```
 
 The first `resolve`/`reject` wins; the process exits immediately after.
+
+### Detecting the webview
+
+A page — especially one loaded from a URL — can tell it's running inside
+`webview` two ways:
+
+- **In JavaScript:** check for the injected object, e.g.
+  `if (window.webview) { … }`. `window.webview.version` disambiguates it from
+  any same-named global and tells you which build.
+- **Server-side / before any JS:** the User-Agent is set to
+  `webview-cli/<version> (+https://github.com/just-be-dev/webview-cli)`, so a
+  server can detect the context and tailor the page on first byte.
 
 ## Exit codes — this table _is_ the public API
 
@@ -157,7 +172,7 @@ Source layout:
 | ----------- | --------------------------------------------------------- |
 | `main.rs`   | orchestration: parse args, resolve input, run             |
 | `cli.rs`    | clap arg struct + usage                                   |
-| `input.rs`  | stdin-vs-path resolution → a `Load` enum                  |
+| `input.rs`  | stdin / URL / path resolution → a `Load` enum             |
 | `bridge.rs` | the `BRIDGE` JS + `AppEvent` + message parsing            |
 | `assets.rs` | custom-protocol file server (MIME, path-traversal safety) |
 | `icon.rs`   | runtime Dock-icon swap for `--icon` (macOS; no-op else)   |

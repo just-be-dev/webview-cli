@@ -13,7 +13,7 @@ use std::path::{Component, Path, PathBuf};
 use wry::http::{header::CONTENT_TYPE, Request, Response};
 
 /// Guess a content type from a file extension. A small, dependency-free table —
-/// enough for the assets a one-shot page references.
+/// enough for the assets a page references.
 pub fn content_type(path: &Path) -> &'static str {
     let ext = path
         .extension()

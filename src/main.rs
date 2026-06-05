@@ -1,4 +1,4 @@
-//! webview — a one-shot webview CLI for agents and humans.
+//! webview — a webview CLI for agents and humans.
 //!
 //! Render the HTML the caller provides, give the page one channel to send a
 //! result back (`window.webview.resolve` / `.reject`), print that result, and
@@ -23,7 +23,7 @@ fn main() {
         Ok(load) => load,
         Err(InputError::NoInput) => {
             eprintln!(
-                "webview: no HTML to render. Pass a file path, or pipe HTML on stdin.\n\
+                "webview: no HTML to render. Pass a file path or http(s) URL, or pipe HTML on stdin.\n\
                  Try 'webview --help' for usage."
             );
             std::process::exit(exit::USAGE);

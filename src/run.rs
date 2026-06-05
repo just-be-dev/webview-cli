@@ -22,6 +22,15 @@ use crate::input::Load;
 /// The custom scheme file pages are served under (see `assets`).
 const FILE_SCHEME: &str = "wv";
 
+/// User-Agent we present to pages and remote servers. It lets a page detect
+/// this context (server-side or before any JS runs) and tells which build.
+/// wry replaces the UA wholesale — there's no append — so this *is* the UA.
+const USER_AGENT: &str = concat!(
+    "webview-cli/",
+    env!("CARGO_PKG_VERSION"),
+    " (+https://github.com/just-be-dev/webview-cli)"
+);
+
 /// Exit codes — this table *is* the public API (see README).
 pub mod exit {
     /// page called `resolve(v)` — stdout carries the JSON.
@@ -57,6 +66,7 @@ pub fn run(cli: &Cli, load: Load) -> ! {
     let ipc_proxy = proxy.clone();
     let mut builder = WebViewBuilder::new()
         .with_initialization_script(BRIDGE)
+        .with_user_agent(USER_AGENT)
         .with_devtools(cli.devtools)
         .with_ipc_handler(move |req| {
             // `req.body()` is the verbatim string the page posted. We split the
@@ -68,6 +78,7 @@ pub fn run(cli: &Cli, load: Load) -> ! {
 
     builder = match &load {
         Load::Html(html) => builder.with_html(html),
+        Load::Url(url) => builder.with_url(url),
         Load::File(path) => {
             // Serve the page's directory over a custom scheme so it loads at
             // all (WKWebView) and gets a real origin for relative assets.
