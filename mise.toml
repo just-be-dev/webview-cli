@@ -1,5 +1,7 @@
 [tools]
-rust = "1.95.0"
+# `components` pulls in rustfmt + clippy (mise installs rust with rustup's
+# minimal profile by default, which omits them).
+rust = { version = "1.95.0", components = "rustfmt,clippy" }
 
 [settings]
 # Pin tool versions and keep a lockfile so contributors and CI build with the
