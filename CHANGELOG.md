@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   argument, alongside the existing file-path and piped-stdin inputs. URLs are
   detected case-insensitively; anything else is treated as a file. Piped stdin
   continues to take precedence over both.
+- `window.webview.version` exposes the webview-cli version to the page, so a
+  remote page can detect this context and tell which build it's running in.
+- Set a `webview-cli/<version>` User-Agent so a server can detect the webview
+  context before any JavaScript runs.
 
 ## [0.1.0]
 

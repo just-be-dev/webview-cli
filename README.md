@@ -75,11 +75,24 @@ Everything else lives in the HTML — there are no other flags by design.
 The page talks back through one injected object:
 
 ```js
+window.webview.version; // the webview-cli version string, e.g. "0.2.0"
 window.webview.resolve(value); // any JSON-serializable value
 window.webview.reject(error); // string or Error
 ```
 
 The first `resolve`/`reject` wins; the process exits immediately after.
+
+### Detecting the webview
+
+A page — especially one loaded from a URL — can tell it's running inside
+`webview` two ways:
+
+- **In JavaScript:** check for the injected object, e.g.
+  `if (window.webview) { … }`. `window.webview.version` disambiguates it from
+  any same-named global and tells you which build.
+- **Server-side / before any JS:** the User-Agent is set to
+  `webview-cli/<version> (+https://github.com/just-be-dev/webview-cli)`, so a
+  server can detect the context and tailor the page on first byte.
 
 ## Exit codes — this table _is_ the public API
 
